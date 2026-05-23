@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElecCalc — Electronics Calculators</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --panel: #111418;
+    --border: #1e2530;
+    --accent: #00e5a0;
+    --accent2: #ff6b35;
+    --text: #c8d4e0;
+    --muted: #4a5568;
+    --label: #7a8fa0;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow', sans-serif;
+    --display: 'Barlow Condensed', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(0,229,160,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(255,107,53,0.03) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.012) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.012) 40px);
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    background: rgba(10,12,15,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: #fff;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .tagline {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  nav {
+    padding: 16px 32px;
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .nav-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+
+  .nav-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .nav-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: bold;
+  }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  .calc-panel {
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .calc-panel.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .calc-header {
+    margin-bottom: 32px;
+  }
+
+  .calc-title {
+    font-family: var(--display);
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .calc-title span { color: var(--accent); }
+
+  .calc-desc {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+
+  .formula-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 8px 16px;
+    margin-top: 12px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 28px;
+  }
+
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+  .field {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .field:focus-within {
+    border-color: var(--accent);
+  }
+
+  .field-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--label);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .field-unit {
+    color: var(--accent2);
+    font-size: 11px;
+  }
+
+  .field input, .field select {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--mono);
+    font-size: 24px;
+    color: #fff;
+    padding: 0;
+  }
+
+  .field input::placeholder { color: var(--muted); }
+
+  .field select {
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--text);
+  }
+
+  .field select option { background: var(--panel); }
+
+  .result-field {
+    border-color: rgba(0,229,160,0.3);
+    background: rgba(0,229,160,0.04);
+    grid-column: 1 / -1;
+  }
+
+  .result-field .field-label { color: var(--accent); }
+
+  .result-value {
+    font-family: var(--mono);
+    font-size: 36px;
+    color: var(--accent);
+    letter-spacing: -1px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .result-unit {
+    font-size: 16px;
+    color: var(--muted);
+  }
+
+  .calc-btn {
+    grid-column: 1 / -1;
+    font-family: var(--display);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 4px;
+  }
+
+  .calc-btn:hover {
+    background: #00ffb3;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(0,229,160,0.25);
+  }
+
+  .calc-btn:active { transform: translateY(0); }
+
+  .reset-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    grid-column: 1 / -1;
+  }
+
+  .reset-btn:hover { color: var(--accent2); border-color: var(--accent2); }
+
+  .info-box {
+    margin-top: 32px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    background: var(--panel);
+    padding: 20px 24px;
+  }
+
+  .info-box h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 12px;
+  }
+
+  .info-box p {
+    font-size: 14px;
+    color: var(--label);
+    line-height: 1.7;
+  }
+
+  .info-box code {
+    font-family: var(--mono);
+    color: var(--accent);
+    background: rgba(0,229,160,0.08);
+    padding: 1px 6px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 40px 0;
+  }
+
+  .error { color: var(--accent2) !important; font-size: 16px !important; }
+
+  footer {
+    text-align: center;
+    padding: 32px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Elec<span>Calc</span></div>
+  <div class="tagline">Electronics Calculators</div>
+  <div class="status-dot"></div>
+</header>
+
+<nav id="nav">
+  <button class="nav-btn active" onclick="showCalc('ohm')">Ohm's Law</button>
+  <button class="nav-btn" onclick="showCalc('divider')">Voltage Divider</button>
+  <button class="nav-btn" onclick="showCalc('led')">LED Resistor</button>
+  <button class="nav-btn" onclick="showCalc('capacitor')">Capacitor</button>
+  <button class="nav-btn" onclick="showCalc('rc')">RC Filter</button>
+  <button class="nav-btn" onclick="showCalc('battery')">Battery Life</button>
+  <button class="nav-btn" onclick="showCalc('power')">Power</button>
+</nav>
+
+<main>
+
+  <!-- OHM'S LAW -->
+  <div class="calc-panel active" id="calc-ohm">
+    <div class="calc-header">
+      <div class="calc-title">Ohm's <span>Law</span></div>
+      <div class="calc-desc">// ENTER ANY TWO VALUES — THIRD IS CALCULATED</div>
+      <div class="formula-badge">V = I × R &nbsp;|&nbsp; I = V/R &nbsp;|&nbsp; R = V/I</div>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <div class="field-label">Voltage <span class="field-unit">V (volts)</span></div>
+        <input type="number" id="ohm-v" placeholder="—" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Current <span class="field-unit">I (amps)</span></div>
+        <input type="number" id="ohm-i" placeholder="—" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Resistance <span class="field-unit">R (ohms)</span></div>
+        <input type="number" id="ohm-r" placeholder="—" step="any">
+      </div>
+      <div class="field result-field">
+        <div class="field-label">Result</div>
+        <div class="result-value" id="ohm-result">—</div>
+      </div>
+      <button class="calc-btn" onclick="calcOhm()">CALCULATE</button>
+      <button class="reset-btn" onclick="resetCalc('ohm-v','ohm-i','ohm-r','ohm-result')">RESET</button>
+    </div>
+    <div class="info-box">
+      <h3>// About Ohm's Law</h3>
+      <p>Ohm's Law defines the relationship between voltage (<code>V</code>), current (<code>I</code>), and resistance (<code>R</code>). Enter any two known values to calculate the third. Current in milliamps? Divide by 1000 first (e.g. 20mA = 0.02A).</p>
+    </div>
+  </div>
+
+  <!-- VOLTAGE DIVIDER -->
+  <div class="calc-panel" id="calc-divider">
+    <div class="calc-header">
+      <div class="calc-title">Voltage <span>Divider</span></div>
+      <div class="calc-desc">// CALCULATE OUTPUT VOLTAGE FROM TWO RESISTORS</div>
+      <div class="formula-badge">Vout = Vin × R2 / (R1 + R2)</div>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <div class="field-label">Input Voltage <span class="field-unit">Vin (V)</span></div>
+        <input type="number" id="div-vin" placeholder="e.g. 12" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Resistor R1 <span class="field-unit">Ω (top)</span></div>
+        <input type="number" id="div-r1" placeholder="e.g. 10000" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Resistor R2 <span class="field-unit">Ω (bottom)</span></div>
+        <input type="number" id="div-r2" placeholder="e.g. 10000" step="any">
+      </div>
+      <div class="field result-field">
+        <div class="field-label">Output Voltage</div>
+        <div class="result-value" id="div-result">— <span class="result-unit">V</span></div>
+      </div>
+      <button class="calc-btn" onclick="calcDivider()">CALCULATE</button>
+      <button class="reset-btn" onclick="resetCalc('div-vin','div-r1','div-r2','div-result','—')">RESET</button>
+    </div>
+    <div class="info-box">
+      <h3>// About Voltage Dividers</h3>
+      <p>A voltage divider uses two resistors in series to produce a fraction of the input voltage. Common uses: level shifting signals, reading potentiometers, biasing transistors. Note: output impedance matters — add a buffer op-amp for precision applications.</p>
+    </div>
+  </div>
+
+  <!-- LED RESISTOR -->
+  <div class="calc-panel" id="calc-led">
+    <div class="calc-header">
+      <div class="calc-title">LED <span>Resistor</span></div>
+      <div class="calc-desc">// FIND THE CORRECT CURRENT-LIMITING RESISTOR</div>
+      <div class="formula-badge">R = (Vs − Vf) / If</div>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <div class="field-label">Supply Voltage <span class="field-unit">Vs (V)</span></div>
+        <input type="number" id="led-vs" placeholder="e.g. 5" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">LED Forward Voltage <span class="field-unit">Vf (V)</span></div>
+        <input type="number" id="led-vf" placeholder="e.g. 2.1" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Desired Current <span class="field-unit">If (mA)</span></div>
+        <input type="number" id="led-if" placeholder="e.g. 20" step="any">
+      </div>
+      <div class="field result-field">
+        <div class="field-label">Required Resistor</div>
+        <div class="result-value" id="led-result">— <span class="result-unit">Ω</span></div>
+      </div>
+      <button class="calc-btn" onclick="calcLED()">CALCULATE</button>
+      <button class="reset-btn" onclick="resetCalc('led-vs','led-vf','led-if','led-result','—')">RESET</button>
+    </div>
+    <div class="info-box">
+      <h3>// Typical LED Values</h3>
+      <p>Red/Yellow/Green LEDs: <code>Vf ≈ 1.8–2.2V</code> &nbsp;|&nbsp; Blue/White LEDs: <code>Vf ≈ 3.0–3.5V</code><br><br>Standard current is <code>20mA</code> for full brightness. Use <code>5–10mA</code> for low-power or indicator use. Always round up to the next standard resistor value (E12 or E24 series).</p>
+    </div>
+  </div>
+
+  <!-- CAPACITOR -->
+  <div class="calc-panel" id="calc-capacitor">
+    <div class="calc-header">
+      <div class="calc-title">Capacitor <span>Charge</span></div>
+      <div class="calc-desc">// RC CHARGE TIME & ENERGY STORED</div>
+      <div class="formula-badge">τ = R × C &nbsp;|&nbsp; E = ½CV²</div>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <div class="field-label">Resistance <span class="field-unit">R (Ω)</span></div>
+        <input type="number" id="cap-r" placeholder="e.g. 1000" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Capacitance <span class="field-unit">C (μF)</span></div>
+        <input type="number" id="cap-c" placeholder="e.g. 100" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Voltage <span class="field-unit">V (volts)</span></div>
+        <input type="number" id="cap-v" placeholder="e.g. 12" step="any">
+      </div>
+      <div class="field result-field">
+        <div class="field-label">Time Constant τ (63.2% charge)</div>
+        <div class="result-value" id="cap-result">—</div>
+      </div>
+      <div class="field result-field" style="margin-top:-12px">
+        <div class="field-label">Energy Stored</div>
+        <div class="result-value" id="cap-energy">—</div>
+      </div>
+      <button class="calc-btn" onclick="calcCapacitor()">CALCULATE</button>
+      <button class="reset-btn" onclick="resetCapacitor()">RESET</button>
+    </div>
+    <div class="info-box">
+      <h3>// RC Time Constant</h3>
+      <p>One time constant (τ) is the time for a capacitor to charge to 63.2% of supply voltage. After <code>5τ</code> the capacitor is considered fully charged (99.3%). Energy is stored in joules: <code>E = ½CV²</code> where C is in Farads.</p>
+    </div>
+  </div>
+
+  <!-- RC FILTER -->
+  <div class="calc-panel" id="calc-rc">
+    <div class="calc-header">
+      <div class="calc-title">RC <span>Filter</span></div>
+      <div class="calc-desc">// CUTOFF FREQUENCY FOR LOW-PASS / HIGH-PASS FILTER</div>
+      <div class="formula-badge">fc = 1 / (2π × R × C)</div>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <div class="field-label">Resistance <span class="field-unit">R (Ω)</span></div>
+        <input type="number" id="rc-r" placeholder="e.g. 10000" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Capacitance <span class="field-unit">C (μF)</span></div>
+        <input type="number" id="rc-c" placeholder="e.g. 0.1" step="any">
+      </div>
+      <div class="field result-field">
+        <div class="field-label">Cutoff Frequency (-3dB point)</div>
+        <div class="result-value" id="rc-result">— <span class="result-unit">Hz</span></div>
+      </div>
+      <button class="calc-btn" onclick="calcRC()">CALCULATE</button>
+      <button class="reset-btn" onclick="resetCalc('rc-r','rc-c','rc-result','—')">RESET</button>
+    </div>
+    <div class="info-box">
+      <h3>// Low-Pass vs High-Pass</h3>
+      <p>Same formula, different configuration. In a <code>low-pass</code> filter, the capacitor is in parallel with the load — signals above fc are attenuated. In a <code>high-pass</code> filter, the capacitor is in series — signals below fc are attenuated. The cutoff frequency is the same in both cases.</p>
+    </div>
+  </div>
+
+  <!-- BATTERY LIFE -->
+  <div class="calc-panel" id="calc-battery">
+    <div class="calc-header">
+      <div class="calc-title">Battery <span>Life</span></div>
+      <div class="calc-desc">// ESTIMATE HOW LONG YOUR BATTERY WILL LAST</div>
+      <div class="formula-badge">Life (hrs) = Capacity (mAh) / Current (mA)</div>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <div class="field-label">Battery Capacity <span class="field-unit">mAh</span></div>
+        <input type="number" id="bat-cap" placeholder="e.g. 2000" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Load Current <span class="field-unit">mA</span></div>
+        <input type="number" id="bat-cur" placeholder="e.g. 50" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Efficiency Factor <span class="field-unit">% (80% typical)</span></div>
+        <input type="number" id="bat-eff" placeholder="80" step="any" value="80">
+      </div>
+      <div class="field result-field">
+        <div class="field-label">Estimated Battery Life</div>
+        <div class="result-value" id="bat-result">—</div>
+      </div>
+      <button class="calc-btn" onclick="calcBattery()">CALCULATE</button>
+      <button class="reset-btn" onclick="resetCalc('bat-cap','bat-cur','bat-result','—')">RESET</button>
+    </div>
+    <div class="info-box">
+      <h3>// Efficiency Note</h3>
+      <p>Real-world battery life is 70–85% of theoretical due to voltage cutoff, temperature, and self-discharge. The efficiency factor accounts for this. Use <code>80%</code> for a realistic estimate, <code>100%</code> for ideal/theoretical max.</p>
+    </div>
+  </div>
+
+  <!-- POWER -->
+  <div class="calc-panel" id="calc-power">
+    <div class="calc-header">
+      <div class="calc-title">Power <span>Calc</span></div>
+      <div class="calc-desc">// ENTER ANY TWO VALUES — POWER IS CALCULATED</div>
+      <div class="formula-badge">P = V × I &nbsp;|&nbsp; P = I²R &nbsp;|&nbsp; P = V²/R</div>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <div class="field-label">Voltage <span class="field-unit">V (volts)</span></div>
+        <input type="number" id="pwr-v" placeholder="—" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Current <span class="field-unit">I (amps)</span></div>
+        <input type="number" id="pwr-i" placeholder="—" step="any">
+      </div>
+      <div class="field">
+        <div class="field-label">Resistance <span class="field-unit">R (ohms)</span></div>
+        <input type="number" id="pwr-r" placeholder="—" step="any">
+      </div>
+      <div class="field result-field">
+        <div class="field-label">Power Dissipated</div>
+        <div class="result-value" id="pwr-result">— <span class="result-unit">W</span></div>
+      </div>
+      <button class="calc-btn" onclick="calcPower()">CALCULATE</button>
+      <button class="reset-btn" onclick="resetCalc('pwr-v','pwr-i','pwr-r','pwr-result','—')">RESET</button>
+    </div>
+    <div class="info-box">
+      <h3>// Resistor Power Rating</h3>
+      <p>When selecting a resistor, always choose one with a power rating at least <code>2×</code> the calculated dissipation. Standard ratings: <code>1/8W, 1/4W, 1/2W, 1W, 2W, 5W</code>. Underrated resistors overheat and fail — or cause fires.</p>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  ELECCALC — Free Electronics Calculators &nbsp;|&nbsp; No ads. No tracking. Just math.
+</footer>
+
+<script>
+  function showCalc(id) {
+    document.querySelectorAll('.calc-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('calc-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function fmt(n) {
+    if (Math.abs(n) >= 1e6) return (n / 1e6).toPrecision(4) + ' M';
+    if (Math.abs(n) >= 1e3) return (n / 1e3).toPrecision(4) + ' k';
+    if (Math.abs(n) < 0.001 && n !== 0) return (n * 1e6).toPrecision(4) + ' μ';
+    return parseFloat(n.toPrecision(5)).toString();
+  }
+
+  // OHM'S LAW
+  function calcOhm() {
+    const v = parseFloat(document.getElementById('ohm-v').value);
+    const i = parseFloat(document.getElementById('ohm-i').value);
+    const r = parseFloat(document.getElementById('ohm-r').value);
+    const el = document.getElementById('ohm-result');
+    const filled = [!isNaN(v), !isNaN(i), !isNaN(r)].filter(Boolean).length;
+    if (filled < 2) { el.innerHTML = '<span class="error">Enter 2 values</span>'; return; }
+    if (!isNaN(v) && !isNaN(i)) {
+      el.innerHTML = `${fmt(v/i)} <span class="result-unit">Ω (resistance)</span>`;
+    } else if (!isNaN(v) && !isNaN(r)) {
+      el.innerHTML = `${fmt(v/r)} <span class="result-unit">A (current)</span>`;
+    } else if (!isNaN(i) && !isNaN(r)) {
+      el.innerHTML = `${fmt(i*r)} <span class="result-unit">V (voltage)</span>`;
+    }
+  }
+
+  function resetCalc(...ids) {
+    ids.slice(0, -2).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.value = ''; }
+    });
+    const resultEl = document.getElementById(ids[ids.length - 2]);
+    if (resultEl) resultEl.innerHTML = ids[ids.length - 1] !== undefined ? (ids[ids.length-1] === '—' ? '—' : ids[ids.length-1]) : '—';
+  }
+
+  // overloaded reset for ohm (no default unit)
+  function resetCalc(...ids) {
+    const resultId = ids[ids.length - 1];
+    ids.slice(0, -1).forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.tagName === 'INPUT') el.value = '';
+      else if (el.classList.contains('result-value')) el.innerHTML = '—';
+    });
+    const r = document.getElementById(resultId);
+    if (r) r.innerHTML = '—';
+  }
+
+  // VOLTAGE DIVIDER
+  function calcDivider() {
+    const vin = parseFloat(document.getElementById('div-vin').value);
+    const r1 = parseFloat(document.getElementById('div-r1').value);
+    const r2 = parseFloat(document.getElementById('div-r2').value);
+    const el = document.getElementById('div-result');
+    if (isNaN(vin) || isNaN(r1) || isNaN(r2)) { el.innerHTML = '<span class="error">Fill all fields</span>'; return; }
+    const vout = vin * r2 / (r1 + r2);
+    el.innerHTML = `${fmt(vout)} <span class="result-unit">V</span>`;
+  }
+
+  // LED RESISTOR
+  function calcLED() {
+    const vs = parseFloat(document.getElementById('led-vs').value);
+    const vf = parseFloat(document.getElementById('led-vf').value);
+    const ifma = parseFloat(document.getElementById('led-if').value);
+    const el = document.getElementById('led-result');
+    if (isNaN(vs) || isNaN(vf) || isNaN(ifma)) { el.innerHTML = '<span class="error">Fill all fields</span>'; return; }
+    if (vs <= vf) { el.innerHTML = '<span class="error">Vs must be > Vf</span>'; return; }
+    const r = (vs - vf) / (ifma / 1000);
+    el.innerHTML = `${fmt(r)} <span class="result-unit">Ω — use ${nextStandardR(r)}Ω</span>`;
+  }
+
+  function nextStandardR(r) {
+    const e12 = [1,1.2,1.5,1.8,2.2,2.7,3.3,3.9,4.7,5.6,6.8,8.2];
+    const exp = Math.floor(Math.log10(r));
+    const mant = r / Math.pow(10, exp);
+    for (let v of e12) if (v >= mant) return (v * Math.pow(10, exp)).toFixed(0);
+    return (e12[0] * Math.pow(10, exp + 1)).toFixed(0);
+  }
+
+  // CAPACITOR
+  function calcCapacitor() {
+    const rc = parseFloat(document.getElementById('cap-r').value);
+    const cc = parseFloat(document.getElementById('cap-c').value);
+    const vc = parseFloat(document.getElementById('cap-v').value);
+    const el = document.getElementById('cap-result');
+    const el2 = document.getElementById('cap-energy');
+    if (isNaN(rc) || isNaN(cc)) { el.innerHTML = '<span class="error">Enter R and C</span>'; return; }
+    const tau = rc * (cc * 1e-6);
+    el.innerHTML = tau < 1 ? `${fmt(tau * 1000)} <span class="result-unit">ms</span>` : `${fmt(tau)} <span class="result-unit">s</span>`;
+    if (!isNaN(vc)) {
+      const e = 0.5 * (cc * 1e-6) * vc * vc;
+      el2.innerHTML = e < 0.001 ? `${fmt(e * 1e6)} <span class="result-unit">μJ</span>` : `${fmt(e * 1000)} <span class="result-unit">mJ</span>`;
+    } else { el2.innerHTML = '— <span class="result-unit">(enter V for energy)</span>'; }
+  }
+
+  function resetCapacitor() {
+    ['cap-r','cap-c','cap-v'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('cap-result').innerHTML = '—';
+    document.getElementById('cap-energy').innerHTML = '—';
+  }
+
+  // RC FILTER
+  function calcRC() {
+    const r = parseFloat(document.getElementById('rc-r').value);
+    const c = parseFloat(document.getElementById('rc-c').value);
+    const el = document.getElementById('rc-result');
+    if (isNaN(r) || isNaN(c)) { el.innerHTML = '<span class="error">Enter R and C</span>'; return; }
+    const fc = 1 / (2 * Math.PI * r * (c * 1e-6));
+    el.innerHTML = `${fmt(fc)} <span class="result-unit">Hz</span>`;
+  }
+
+  // BATTERY LIFE
+  function calcBattery() {
+    const cap = parseFloat(document.getElementById('bat-cap').value);
+    const cur = parseFloat(document.getElementById('bat-cur').value);
+    const eff = parseFloat(document.getElementById('bat-eff').value) || 80;
+    const el = document.getElementById('bat-result');
+    if (isNaN(cap) || isNaN(cur)) { el.innerHTML = '<span class="error">Fill all fields</span>'; return; }
+    const hrs = (cap / cur) * (eff / 100);
+    if (hrs >= 24) {
+      el.innerHTML = `${fmt(hrs/24)} <span class="result-unit">days (${fmt(hrs)} hrs)</span>`;
+    } else {
+      el.innerHTML = `${fmt(hrs)} <span class="result-unit">hours</span>`;
+    }
+  }
+
+  // POWER
+  function calcPower() {
+    const v = parseFloat(document.getElementById('pwr-v').value);
+    const i = parseFloat(document.getElementById('pwr-i').value);
+    const r = parseFloat(document.getElementById('pwr-r').value);
+    const el = document.getElementById('pwr-result');
+    let p = NaN;
+    if (!isNaN(v) && !isNaN(i)) p = v * i;
+    else if (!isNaN(i) && !isNaN(r)) p = i * i * r;
+    else if (!isNaN(v) && !isNaN(r)) p = v * v / r;
+    if (isNaN(p)) { el.innerHTML = '<span class="error">Enter 2 values</span>'; return; }
+    el.innerHTML = `${fmt(p)} <span class="result-unit">W</span>`;
+  }
+
+  // Keyboard enter triggers calculate
+  document.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const panel = inp.closest('.calc-panel');
+        panel.querySelector('.calc-btn').click();
+      }
+    });
+  });
+</script>
+</body>
+</html>
